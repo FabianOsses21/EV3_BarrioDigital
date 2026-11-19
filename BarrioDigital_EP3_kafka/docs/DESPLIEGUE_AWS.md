@@ -23,7 +23,7 @@ Navegador ── https://<ip>.sslip.io ──► Caddy (EC2:443) ──► front
 | Dominio frontend | `https://100.51.118.15.sslip.io` (Caddy + Let's Encrypt) |
 | API Gateway | `bfg5px81d9` (HTTP API, stage `$default`) |
 | Integraciones | `http://<EIP>:8080/api/{proxy}` y `…/api` |
-| JWT authorizer | issuer `https://login.microsoftonline.com/f402d005-2163-4d89-a6cd-e07c25b973b2/v2.0`, audience `54bc913a-2f45-4e55-9eae-b30616a9f8d5` |
+| JWT authorizer | issuer `https://login.microsoftonline.com/f402d005-2163-4d89-a6cd-e07c25b973b2/v2.0`, audience `acc38f45-b5ba-4e55-9b14-fcaa00f9c661` |
 | Rutas | `GET/POST/PUT/PATCH/DELETE /api/{proxy+}` y `/api` con authorizer; OPTIONS lo responde el CORS del API GW (204) |
 | CORS API GW | origin `https://100.51.118.15.sslip.io` |
 | Security Group | `sg-0b090bd4860eab531`: 22, 80, 443, 8080, 15672, 15673 → `0.0.0.0/0` |

@@ -4,7 +4,7 @@ x-app-env: &app-env
   KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
   AUTH_MODE: entra
   AZURE_TENANT_ID: ${AZURE_TENANT_ID:-f402d005-2163-4d89-a6cd-e07c25b973b2}
-  AZURE_API_CLIENT_ID: ${AZURE_API_CLIENT_ID:-54bc913a-2f45-4e55-9eae-b30616a9f8d5}
+  AZURE_API_CLIENT_ID: ${AZURE_API_CLIENT_ID:-acc38f45-b5ba-4e55-9b14-fcaa00f9c661}
   AZURE_REQUIRED_SCOPE: ${AZURE_REQUIRED_SCOPE:-OT.Create}
   CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4200}
   RABBITMQ_ADDRESSES: rabbitmq-1:5672,rabbitmq-2:5672
@@ -248,8 +248,8 @@ services:
       AUTH_MODE: entra
       PUBLIC_API_URL: ${PUBLIC_API_URL:-}
       AZURE_TENANT_ID: ${AZURE_TENANT_ID:-f402d005-2163-4d89-a6cd-e07c25b973b2}
-      AZURE_SPA_CLIENT_ID: ${AZURE_SPA_CLIENT_ID:-d7f096c4-0ef5-4833-8def-e802ffd7314a}
-      AZURE_BACKEND_SCOPE: ${AZURE_BACKEND_SCOPE:-api://54bc913a-2f45-4e55-9eae-b30616a9f8d5/OT.Create}
+      AZURE_SPA_CLIENT_ID: ${AZURE_SPA_CLIENT_ID:-2412c4b5-8d7b-46ab-8887-bc06a42a72fa}
+      AZURE_BACKEND_SCOPE: ${AZURE_BACKEND_SCOPE:-api://acc38f45-b5ba-4e55-9b14-fcaa00f9c661/OT.Create}
     ports: ["127.0.0.1:4200:80"]
     depends_on:
       api-gateway: {condition: service_healthy}

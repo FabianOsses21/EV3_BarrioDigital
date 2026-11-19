@@ -5,7 +5,7 @@ export const environment={
   production:true,
   authMode:runtime.authMode??'entra',
   apiUrl:runtime.apiUrl||window.location.origin,
-  azure:{clientId:runtime.clientId??'d7f096c4-0ef5-4833-8def-e802ffd7314a',tenantId:tenant,
+  azure:{clientId:runtime.clientId??'2412c4b5-8d7b-46ab-8887-bc06a42a72fa',tenantId:tenant,
     authority:`https://login.microsoftonline.com/${tenant}`,redirectUri:window.location.origin+'/',
-    backendScope:runtime.backendScope??'api://54bc913a-2f45-4e55-9eae-b30616a9f8d5/OT.Create'}
+    backendScope:runtime.backendScope??'api://acc38f45-b5ba-4e55-9b14-fcaa00f9c661/OT.Create'}
 };

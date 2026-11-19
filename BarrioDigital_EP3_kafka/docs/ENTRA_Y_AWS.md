@@ -2,10 +2,10 @@
 
 ## Configuración de Entra ID
 
-Los identificadores de `.env.example` provienen del proyecto original. Son identificadores públicos; no hay client secret en Angular ni en los contenedores. La SPA usa MSAL y el flujo de autorización con PKCE.
+Los identificadores de `.env.example` corresponden a los registros de BarrioDigital EV3. Son identificadores públicos; no hay client secret en Angular ni en los contenedores. La SPA usa MSAL y el flujo de autorización con PKCE.
 
 1. En el registro de la SPA, confirma `http://localhost:4200/` como URI de redirección de tipo Single-page application. Debe coincidir con la URL que abres en el navegador.
-2. En el registro de la API, confirma `api://54bc913a-2f45-4e55-9eae-b30616a9f8d5/OT.Create` y que la SPA tenga permiso delegado y consentimiento cuando corresponda.
+2. En el registro de la API, confirma `api://acc38f45-b5ba-4e55-9b14-fcaa00f9c661/OT.Create` y que la SPA tenga permiso delegado y consentimiento cuando corresponda.
 3. La API espera tokens v2 (`requestedAccessTokenVersion: 2`): issuer del tenant terminado en `/v2.0`, audience igual al ID GUID de la API y `scp` con `OT.Create`.
 4. Define/asigna los roles de la API a usuarios o grupos en la aplicación empresarial. La API necesita `roles` en su **access token**. Los roles del ID token de la SPA solo controlan la interfaz y no sustituyen los de la API.
 5. Si deseas que el frontend muestre las mismas opciones, conserva también sus asignaciones de roles actuales o alinea los roles de ambos registros. Aliases aceptados: `Admin`, `Administrador`, `ROLE_ADMINISTRADOR`, `Funcionario`, `ROLE_OPERADOR`, `Vecino`, `ROLE_CLIENTE`.
