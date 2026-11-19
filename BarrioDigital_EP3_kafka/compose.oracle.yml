@@ -5,7 +5,7 @@
 # minutos); el initdb crea usuarios y ejecuta el DDL de infra/oracle/.
 # ORACLE_JDBC_URL puede sobrescribirse para apuntar a una base externa.
 x-oracle-env: &oracle-env
-  ORACLE_JDBC_URL: ${ORACLE_JDBC_URL:-jdbc:oracle:thin:@oracle-xe:1521/FREEPDB1}
+  ORACLE_JDBC_URL: ${ORACLE_JDBC_URL:-jdbc:oracle:thin:@oracle-xe:1521/BARRIODB}
 
 services:
   oracle-xe:

@@ -3,7 +3,7 @@
 # Corre una sola vez, en el primer arranque del volumen de datos.
 set -euo pipefail
 
-PDB="FREEPDB1"
+PDB="BARRIODB"
 SYS="sys/${ORACLE_PASSWORD}@//localhost:1521/${PDB} as sysdba"
 
 sqlplus -s "$SYS" <<SQL

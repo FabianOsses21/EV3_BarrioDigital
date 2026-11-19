@@ -36,3 +36,8 @@ FROM runtime AS rabbitadmin
 ENV SERVER_PORT=8085
 COPY --from=build --chown=app:app /build/rabbitadmin/target/rabbitadmin-1.0.0.jar /app/app.jar
 EXPOSE 8085
+
+FROM runtime AS kafkaadmin
+ENV SERVER_PORT=8086
+COPY --from=build --chown=app:app /build/kafkaadmin/target/kafkaadmin-1.0.0.jar /app/app.jar
+EXPOSE 8086

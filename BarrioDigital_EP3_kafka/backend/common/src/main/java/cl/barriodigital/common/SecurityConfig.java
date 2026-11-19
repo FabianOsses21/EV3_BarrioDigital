@@ -1,5 +1,6 @@
 package cl.barriodigital.common;
 import java.util.*;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
@@ -43,7 +44,8 @@ public class SecurityConfig {
     UrlBasedCorsConfigurationSource source=new UrlBasedCorsConfigurationSource(); source.registerCorsConfiguration("/**",cors);
     http.cors(c->c.configurationSource(source)).csrf(c->c.disable())
       .sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-      .authorizeHttpRequests(a->a.requestMatchers("/actuator/health/**","/api/public").permitAll()
+      .authorizeHttpRequests(a->a.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+        .requestMatchers("/actuator/health/**","/api/public").permitAll()
         .anyRequest().hasAnyRole("ADMIN","FUNCIONARIO","VECINO"));
     if ("demo".equals(mode)) {
       http.addFilterBefore(new OncePerRequestFilter(){

@@ -12,7 +12,7 @@ class ProxyControllerTest {
     server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
     server.createContext("/api/requests",exchange->{auth.set(exchange.getRequestHeaders().getFirst("Authorization"));body.set(new String(exchange.getRequestBody().readAllBytes()));path.set(exchange.getRequestURI().toString());
       byte[] response="{\"message\":\"invalid\"}".getBytes();exchange.getResponseHeaders().set("Content-Type","application/json");exchange.sendResponseHeaders(400,response.length);exchange.getResponseBody().write(response);exchange.close();});server.start();
-    String base="http://127.0.0.1:"+server.getAddress().getPort();proxy=new ProxyController(RestClient.create(),base,base,base,base);
+    String base="http://127.0.0.1:"+server.getAddress().getPort();proxy=new ProxyController(RestClient.create(),base,base,base,base,base);
   }
   @AfterEach void stop(){server.stop(0);}
   @Test void relaysTokenPayloadQueryAndDownstreamError(){

@@ -6,8 +6,3 @@ services:
     ports: !override ["8080:8080"]
   frontend:
     ports: !override ["4200:80"]
-  rabbitmq-1:
-    ports: !override ["15672:15672"]
-  rabbitmq-2:
-    ports: !override ["15673:15672"]
-# AMQP (5672/5673) se mantiene solo en la red Docker interna.

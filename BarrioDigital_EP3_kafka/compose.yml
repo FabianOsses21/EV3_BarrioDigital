@@ -1,6 +1,7 @@
 name: barriodigital
 
 x-app-env: &app-env
+  KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
   AUTH_MODE: entra
   AZURE_TENANT_ID: ${AZURE_TENANT_ID:-f402d005-2163-4d89-a6cd-e07c25b973b2}
   AZURE_API_CLIENT_ID: ${AZURE_API_CLIENT_ID:-54bc913a-2f45-4e55-9eae-b30616a9f8d5}
@@ -19,6 +20,114 @@ x-app: &app
   mem_limit: 768m
 
 services:
+  zookeeper-1:
+    image: confluentinc/cp-zookeeper:7.7.1
+    restart: unless-stopped
+    networks: [barriodigital]
+    environment:
+      ZOOKEEPER_SERVER_ID: "1"
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
+      ZOOKEEPER_INIT_LIMIT: "10"
+      ZOOKEEPER_SYNC_LIMIT: "5"
+      ZOOKEEPER_SERVERS: "zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888"
+      KAFKA_HEAP_OPTS: -Xms96m -Xmx192m
+    volumes: ["zk1_data:/var/lib/zookeeper/data", "zk1_log:/var/lib/zookeeper/log"]
+  kafka-1:
+    image: confluentinc/cp-kafka:7.7.1
+    restart: unless-stopped
+    networks: [barriodigital]
+    depends_on: [zookeeper-1, zookeeper-2, zookeeper-3]
+    ports: ["127.0.0.1:29092:29092"]
+    environment:
+      KAFKA_BROKER_ID: "1"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-1:9092,HOST://localhost:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    volumes: ["kafka1_data:/var/lib/kafka/data"]
+  zookeeper-2:
+    image: confluentinc/cp-zookeeper:7.7.1
+    restart: unless-stopped
+    networks: [barriodigital]
+    environment:
+      ZOOKEEPER_SERVER_ID: "2"
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
+      ZOOKEEPER_INIT_LIMIT: "10"
+      ZOOKEEPER_SYNC_LIMIT: "5"
+      ZOOKEEPER_SERVERS: "zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888"
+      KAFKA_HEAP_OPTS: -Xms96m -Xmx192m
+    volumes: ["zk2_data:/var/lib/zookeeper/data", "zk2_log:/var/lib/zookeeper/log"]
+  kafka-2:
+    image: confluentinc/cp-kafka:7.7.1
+    restart: unless-stopped
+    networks: [barriodigital]
+    depends_on: [zookeeper-1, zookeeper-2, zookeeper-3]
+    ports: ["127.0.0.1:39092:39092"]
+    environment:
+      KAFKA_BROKER_ID: "2"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,HOST://0.0.0.0:39092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-2:9092,HOST://localhost:39092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    volumes: ["kafka2_data:/var/lib/kafka/data"]
+  zookeeper-3:
+    image: confluentinc/cp-zookeeper:7.7.1
+    restart: unless-stopped
+    networks: [barriodigital]
+    environment:
+      ZOOKEEPER_SERVER_ID: "3"
+      ZOOKEEPER_CLIENT_PORT: "2181"
+      ZOOKEEPER_TICK_TIME: "2000"
+      ZOOKEEPER_INIT_LIMIT: "10"
+      ZOOKEEPER_SYNC_LIMIT: "5"
+      ZOOKEEPER_SERVERS: "zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888"
+      KAFKA_HEAP_OPTS: -Xms96m -Xmx192m
+    volumes: ["zk3_data:/var/lib/zookeeper/data", "zk3_log:/var/lib/zookeeper/log"]
+  kafka-3:
+    image: confluentinc/cp-kafka:7.7.1
+    restart: unless-stopped
+    networks: [barriodigital]
+    depends_on: [zookeeper-1, zookeeper-2, zookeeper-3]
+    ports: ["127.0.0.1:49092:49092"]
+    environment:
+      KAFKA_BROKER_ID: "3"
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,HOST://0.0.0.0:49092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-3:9092,HOST://localhost:49092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    volumes: ["kafka3_data:/var/lib/kafka/data"]
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.1
+    networks: [barriodigital]
+    depends_on: [kafka-1, kafka-2, kafka-3]
+    entrypoint: ["/bin/bash","/init.sh"]
+    volumes: ["./infra/kafka/init.sh:/init.sh:ro"]
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    networks: [barriodigital]
+    restart: unless-stopped
+    ports: ["127.0.0.1:8090:8080"]
+    environment:
+      KAFKA_CLUSTERS_0_NAME: BarrioDigital
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
+  kafkaadmin:
+    <<: *app
+    build: {context: ./backend, target: kafkaadmin}
+    environment: *app-env
   rabbitmq-1:
     image: rabbitmq:4.2.9-management
     hostname: rabbitmq-1
@@ -95,6 +204,7 @@ services:
       CATALOG_URL: http://catalog:8082
     volumes: ["requests_data:/app/data"]
     depends_on:
+      kafka-init: {condition: service_completed_successfully}
       catalog: {condition: service_healthy}
       rabbitadmin: {condition: service_healthy}
 
@@ -107,6 +217,7 @@ services:
       DEMO_FAILURE_ENABLED: ${DEMO_FAILURE_ENABLED:-true}
     volumes: ["notify_data:/app/data"]
     depends_on:
+      kafka-init: {condition: service_completed_successfully}
       rabbitadmin: {condition: service_healthy}
 
   bff:
@@ -152,3 +263,12 @@ volumes:
   catalog_data:
   requests_data:
   notify_data:
+  zk1_data:
+  zk1_log:
+  kafka1_data:
+  zk2_data:
+  zk2_log:
+  kafka2_data:
+  zk3_data:
+  zk3_log:
+  kafka3_data:

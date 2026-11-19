@@ -19,7 +19,9 @@ public class TramiteService {
     EstadoTramite.EN_GESTION,Set.of(EstadoTramite.EN_TERRENO,EstadoTramite.RECHAZADO),
     EstadoTramite.EN_TERRENO,Set.of(EstadoTramite.RESUELTO,EstadoTramite.RECHAZADO),
     EstadoTramite.RESUELTO,Set.of(),EstadoTramite.RECHAZADO,Set.of());
-  public TramiteService(TramiteRepository repo,CatalogClient catalog,OutboxWriter outbox,Identity identity,DomainLockRepository lock){
+  private final KafkaOutbox kafka;
+  public TramiteService(TramiteRepository repo,CatalogClient catalog,OutboxWriter outbox,Identity identity,DomainLockRepository lock,KafkaOutbox kafka){
+    this.kafka=kafka;
     this.repo=repo;this.catalog=catalog;this.outbox=outbox;this.identity=identity;this.lock=lock;
   }
   @Transactional(readOnly=true) public List<Tramite> list(){
@@ -36,7 +38,7 @@ public class TramiteService {
     if(!Boolean.TRUE.equals(tipo.activo()))throw new IllegalStateException("El tipo de trámite está inactivo");
     Tramite t=new Tramite(UUID.randomUUID().toString(),tipo.id(),tipo.nombre(),dto.getAsunto().trim(),dto.getDescripcion().trim(),identity.id(),identity.name(),EstadoTramite.INGRESADO);
     t.setClienteEmail(dto.getClienteEmail().trim());
-    repo.save(t);outbox.enqueue(t,"creado");return t;
+    repo.save(t);outbox.enqueue(t,"creado");kafka.record(t,null);return t;
   }
   public Tramite edit(String id,String asunto,String descripcion){
     lock.acquire();Tramite t=get(id);
@@ -54,7 +56,7 @@ public class TramiteService {
       if(count>=tipo.cupoDiario())throw new IllegalStateException("Cupo diario agotado");
       t.setFechaAdmision(LocalDateTime.now());
     }
-    t.setEstado(next);t.setFechaActualizacion(LocalDateTime.now());repo.save(t);outbox.enqueue(t,"actualizado");return t;
+    String previous=t.getEstado().name();t.setEstado(next);t.setFechaActualizacion(LocalDateTime.now());repo.save(t);outbox.enqueue(t,"actualizado");kafka.record(t,previous);return t;
   }
   public void delete(String id){lock.acquire();Tramite t=get(id);if(t.getEstado()!=EstadoTramite.INGRESADO)throw new IllegalStateException("Solo se eliminan trámites ingresados");repo.delete(t);}
 }

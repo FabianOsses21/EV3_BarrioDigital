@@ -5,7 +5,7 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import static org.assertj.core.api.Assertions.*;
-@SpringBootTest(properties={"app.auth.mode=demo","spring.rabbitmq.dynamic=false","spring.rabbitmq.listener.simple.auto-startup=false","app.consumer.demo-failure-enabled=true","spring.datasource.url=jdbc:h2:mem:notify_test;DB_CLOSE_DELAY=-1","spring.jpa.hibernate.ddl-auto=create-drop"})
+@SpringBootTest(properties={"spring.kafka.listener.auto-startup=false","app.auth.mode=demo","spring.rabbitmq.dynamic=false","spring.rabbitmq.listener.simple.auto-startup=false","app.consumer.demo-failure-enabled=true","spring.datasource.url=jdbc:h2:mem:notify_test;DB_CLOSE_DELAY=-1","spring.jpa.hibernate.ddl-auto=create-drop"})
 class InboxIntegrationTest {
   @Autowired NotificationProcessor processor;@Autowired ReceiptRepository repo;
   @BeforeEach void clean(){repo.deleteAll();}

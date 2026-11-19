@@ -18,7 +18,7 @@ class OutboxPublisherTest {
     repo=mock(OutboxRepository.class);rabbit=mock(RabbitTemplate.class);
     publisher=new OutboxPublisher(repo,rabbit,mock(PlatformTransactionManager.class));
     event=new OutboxMessage("event-1","cmd.direct","email.send","correlation-1","{}");
-    when(repo.findTop20BySentAtIsNullOrderByCreatedAtAsc())
+    when(repo.findTop20BySentAtIsNullAndExchangeNameNotOrderByCreatedAtAsc(KafkaOutbox.DESTINATION))
       .thenReturn(List.of(event));
   }
 

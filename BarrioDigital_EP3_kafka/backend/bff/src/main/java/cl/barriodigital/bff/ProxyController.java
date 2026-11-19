@@ -12,8 +12,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class ProxyController {
   private final RestClient client;private final Map<String,String> routes;
   public ProxyController(RestClient client,@Value("${app.catalog.url}")String catalog,@Value("${app.requests.url}")String requests,
-      @Value("${app.notify.url}")String notify,@Value("${app.rabbitadmin.url}")String admin){
-    this.client=client;routes=Map.of("catalog",catalog,"requests",requests,"orders",requests,"pedidos",requests,"notifications",notify,"rabbitmq",admin);
+      @Value("${app.notify.url}")String notify,@Value("${app.rabbitadmin.url}")String admin,@Value("${KAFKAADMIN_URL:http://kafkaadmin:8086}") String kafkaAdmin){
+    this.client=client;routes=Map.of("catalog",catalog,"requests",requests,"orders",requests,"pedidos",requests,"notifications",notify,"rabbitmq",admin,"kafka",kafkaAdmin);
   }
   @GetMapping("/api/public") public Map<String,String> publicStatus(){return Map.of("application","BarrioDigital BFF","status","UP");}
   @GetMapping("/api/ordenes") public String protectedStatus(){return "BFF protegido: acceso autorizado";}

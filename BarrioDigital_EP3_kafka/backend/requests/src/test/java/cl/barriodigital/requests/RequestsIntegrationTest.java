@@ -26,7 +26,7 @@ class RequestsIntegrationTest {
   }
   @Test void creationPersistsThreeEventsAndUsesAuthenticatedOwner()throws Exception{
     String id=create("vecino-a");assertThat(repo.findById(id).orElseThrow().getPropietarioId()).isEqualTo("vecino-a");
-    assertThat(outbox.count()).isEqualTo(3);assertThat(outbox.findAll()).extracting(e->e.routingKey).containsExactlyInAnyOrder("email.send","tramite.audit.creado","tramite.estado.creado");
+    assertThat(outbox.count()).isEqualTo(5);assertThat(outbox.findAll()).extracting(e->e.routingKey).containsExactlyInAnyOrder("email.send","tramite.audit.creado","tramite.estado.creado","tramites-eventos","tramites-auditoria");
   }
   @Test void vecinoCannotReadAnotherOwnersRecordOrChangeStatus()throws Exception{
     String id=create("vecino-a");
@@ -42,7 +42,7 @@ class RequestsIntegrationTest {
     String one=create("vecino-a"),two=create("vecino-b");
     mvc.perform(put("/api/requests/"+one+"/estado").header("X-Demo-Role","Funcionario").contentType("application/json").content("{\"estado\":\"ADMITIDO\"}")).andExpect(status().isOk());
     mvc.perform(put("/api/requests/"+two+"/estado").header("X-Demo-Role","Funcionario").contentType("application/json").content("{\"estado\":\"ADMITIDO\"}")).andExpect(status().isConflict());
-    assertThat(outbox.count()).isEqualTo(9);
+    assertThat(outbox.count()).isEqualTo(15);
   }
   @Test void editAndDeleteArePersisted()throws Exception{
     String id=create("vecino-a");

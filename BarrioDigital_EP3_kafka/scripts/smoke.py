@@ -77,6 +77,28 @@ def main():
 
     until('tres consumidores procesan el trámite', lambda:
           len({r['queueName'] for r in call('GET', '/api/notifications') if r['requestId'] == good['id']}) == 3)
+    topics = {"tramites-eventos", "tramites-auditoria"}
+    assert topics <= set(call("GET", "/api/kafka/topics"))
+    for topic in topics:
+        parts = call("GET", "/api/kafka/topics/" + topic)
+        assert len(parts) == 3 and all(len(p["replicas"]) == 3 for p in parts)
+    def kafka_processed():
+        rows = call("GET", "/api/notifications/kafka/" + good["id"])
+        actual = {(r["topic"], r["eventType"], r["estado"]) for r in rows}
+        expected = {(topic, kind, state) for topic in topics for kind, state in
+                    [("TRAMITE_INGRESADO", "INGRESADO"), ("ETAPA_CAMBIADA", "ADMITIDO")]}
+        return actual == expected and len(rows) == 4
+    until("ingreso y admisión procesados en ambos tópicos", kafka_processed)
+    if args.mode == "demo":
+        call("GET", "/api/kafka/topics", expected=403, role="Vecino")
+    temporary = "prueba-" + suffix
+    call("POST", "/api/kafka/topics", {"name": temporary, "partitions": 3, "replicas": 3}, 201)
+    try:
+        config = call("PUT", "/api/kafka/topics/" + temporary + "/config",
+                      {"retentionMs": 3600000, "cleanupPolicy": "delete"})
+        assert config["retention.ms"] == "3600000"
+    finally:
+        call("DELETE", "/api/kafka/topics/" + temporary, expected=204)
     queue_name = 'q.cmd.email.dlq'
 
     def dead_count():

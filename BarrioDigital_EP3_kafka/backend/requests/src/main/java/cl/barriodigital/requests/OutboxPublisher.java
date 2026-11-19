@@ -24,7 +24,7 @@ public class OutboxPublisher {
     // El retraso de reintentos se evalúa en Java con LocalDateTime: TIMESTAMP
     // guarda y lee wall-clock de forma simétrica, sin desfase de zona horaria.
     LocalDateTime now=LocalDateTime.now();
-    for(OutboxMessage event:repo.findTop20BySentAtIsNullOrderByCreatedAtAsc()) {
+    for(OutboxMessage event:repo.findTop20BySentAtIsNullAndExchangeNameNotOrderByCreatedAtAsc(KafkaOutbox.DESTINATION)) {
       if(event.nextAttempt!=null&&event.nextAttempt.isAfter(now))continue;
       event.attempts++;
       try {
