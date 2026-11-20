@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -45,6 +46,8 @@ class KafkaDispatcher {
     private final OutboxRepository repository;
     private final ObjectMapper mapper;
 
+    private static final int MAX_ATTEMPTS = 25;
+
     KafkaDispatcher(KafkaTemplate<String,String> producer, OutboxRepository repository, ObjectMapper mapper) {
         this.producer = producer;
         this.repository = repository;
@@ -53,10 +56,26 @@ class KafkaDispatcher {
 
     @Scheduled(fixedDelay=1500)
     public void dispatch() {
-        for (var row : repository.findTop20BySentAtIsNullAndExchangeNameOrderByCreatedAtAsc(KafkaOutbox.DESTINATION)) {
-            if (row.nextAttempt.isAfter(LocalDateTime.now())) break;
+        var now = LocalDateTime.now();
+        var blocked = new HashSet<String>();
+        for (var row : repository.findPendingKafka(KafkaOutbox.DESTINATION, Pageable.ofSize(20))) {
+            TramiteEvent event;
             try {
-                var event = mapper.readValue(row.payload, TramiteEvent.class);
+                event = mapper.readValue(row.payload, TramiteEvent.class);
+            } catch (Exception ex) {
+                row.attempts++;
+                row.failed = true;
+                row.lastError = ex.getClass().getSimpleName();
+                log.error("Evento Kafka descartado por payload inválido topic={} eventId={} error={}",
+                        row.routingKey, row.id, row.lastError);
+                repository.save(row);
+                continue;
+            }
+            var key = row.routingKey + '|' + event.tramiteId();
+            if (blocked.contains(key)) continue;
+            if (row.nextAttempt.isAfter(now)) { blocked.add(key); continue; }
+            row.attempts++;
+            try {
                 var result = producer.send(row.routingKey, event.tramiteId().toString(), row.payload).get(12, TimeUnit.SECONDS);
                 log.info("Publicado topic={} eventId={} partition={} offset={}", row.routingKey, row.id,
                         result.getRecordMetadata().partition(), result.getRecordMetadata().offset());
@@ -65,12 +84,17 @@ class KafkaDispatcher {
             } catch (Exception ex) {
                 if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
                 row.lastError = ex.getClass().getSimpleName();
-                row.nextAttempt = LocalDateTime.now().plusSeconds(Math.min(60, 1L << Math.min(6, row.attempts)));
-                log.warn("Kafka pendiente topic={} eventId={} error={}", row.routingKey, row.id, row.lastError);
+                if (row.attempts >= MAX_ATTEMPTS) {
+                    row.failed = true;
+                    log.error("Evento Kafka descartado tras {} intentos topic={} eventId={} error={}",
+                            row.attempts, row.routingKey, row.id, row.lastError);
+                } else {
+                    row.nextAttempt = LocalDateTime.now().plusSeconds(Math.min(60, 1L << Math.min(6, row.attempts)));
+                    log.warn("Kafka pendiente topic={} eventId={} error={}", row.routingKey, row.id, row.lastError);
+                }
+                blocked.add(key);
             }
-            row.attempts++;
             repository.save(row);
-            if (row.sentAt == null) break;
         }
     }
 }

@@ -22,6 +22,6 @@ public class TramiteController {
   public Tramite state(@PathVariable String id,@Valid @RequestBody ActualizarEstadoDto dto){return service.change(id,dto.getEstado());}
   @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable String id){service.delete(id);return ResponseEntity.noContent().build();}
   @GetMapping("/outbox/status") @PreAuthorize("hasRole('ADMIN')")
-  public Map<String,Long> status(){return Map.of("pendientes",outbox.countBySentAtIsNull());}
+  public Map<String,Long> status(){return Map.of("pendientes",outbox.countPending(),"fallidos",outbox.countByFailedTrue());}
   @Bean CommandLineRunner initLock(DomainLockRepository locks){return args->{if(!locks.existsById(1L))locks.save(new DomainLock(1));};}
 }
