@@ -120,14 +120,4 @@ export class AuthService {
   get puedeGestionarCatalogo(): boolean {
     return this.hasAnyRole('Admin');
   }
-  mostrarRolesAzure(): void {
-  const account = this.getAccount();
-
-  console.log(
-    'Roles recibidos de Azure:',
-    account?.idTokenClaims?.['roles'] ?? 'Sin claim roles',
-  );
-
-  console.log('Roles reconocidos por BarrioDigital:', this.roles);
-}
 }

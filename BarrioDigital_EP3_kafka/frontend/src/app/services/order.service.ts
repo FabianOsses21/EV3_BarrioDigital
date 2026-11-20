@@ -17,5 +17,4 @@ export class OrderService {
   getCatalog(){return this.http.get<TipoTramite[]>(`${this.base}/catalog?soloActivos=false`).pipe(catchError(this.error));}
   saveCatalog(payload:Omit<TipoTramite,'id'> & {id?:string}){return this.http.post<TipoTramite>(`${this.base}/catalog`,payload).pipe(catchError(this.error));}
   deleteCatalog(id:string){return this.http.delete<void>(`${this.base}/catalog/${encodeURIComponent(id)}`).pipe(catchError(this.error));}
-  checkProtectedAccess(){return this.http.get(`${this.base}/ordenes`,{responseType:'text'}).pipe(catchError(this.error));}
 }

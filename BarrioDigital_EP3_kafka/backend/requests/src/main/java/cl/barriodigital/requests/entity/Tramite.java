@@ -2,8 +2,6 @@ package cl.barriodigital.requests.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "tramites_pedidos")
@@ -49,10 +47,6 @@ public class Tramite {
     @Version
     private Long version;
 
-    @OneToMany(mappedBy = "tramite", cascade = CascadeType.ALL, orphanRemoval = true)
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    private List<ItemPedido> items = new ArrayList<>();
-
     public Tramite() {
     }
 
@@ -69,16 +63,6 @@ public class Tramite {
         LocalDateTime now = LocalDateTime.now();
         this.fechaCreacion = now;
         this.fechaActualizacion = now;
-    }
-
-    public void addItem(ItemPedido item) {
-        items.add(item);
-        item.setTramite(this);
-    }
-
-    public void removeItem(ItemPedido item) {
-        items.remove(item);
-        item.setTramite(null);
     }
 
     public String getId() {
@@ -175,13 +159,5 @@ public class Tramite {
 
     public void setFechaAdmision(LocalDateTime fechaAdmision) {
         this.fechaAdmision = fechaAdmision;
-    }
-
-    public List<ItemPedido> getItems() {
-        return items;
-    }
-
-    public void setItems(List<ItemPedido> items) {
-        this.items = items;
     }
 }
