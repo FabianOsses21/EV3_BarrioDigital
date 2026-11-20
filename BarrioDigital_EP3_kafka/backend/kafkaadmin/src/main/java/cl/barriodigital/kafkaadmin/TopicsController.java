@@ -8,8 +8,10 @@ import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.errors.*;
+import org.springframework.boot.health.contributor.*;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -25,7 +27,11 @@ class TopicsController {
     record Policy(@Positive long retentionMs, @NotNull @Pattern(regexp="delete|compact|compact,delete") String cleanupPolicy) {}
 
     @GetMapping
-    public Set<String> list() throws Exception { return admin.listTopics().names().get(); }
+    public Set<String> list() throws Exception {
+        var names = new TreeSet<>(admin.listTopics().names().get());
+        names.removeIf(n -> n.startsWith("__"));
+        return names;
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -74,5 +80,21 @@ class TopicsController {
         if (cause instanceof InvalidRequestException || cause instanceof InvalidConfigurationException || cause instanceof InvalidTopicException)
             return ResponseEntity.badRequest().body(Map.of("message","Configuración inválida"));
         return ResponseEntity.status(503).body(Map.of("message","Kafka no pudo completar la operación"));
+    }
+}
+
+@Component
+class KafkaHealthIndicator implements HealthIndicator {
+    private final Admin admin;
+    KafkaHealthIndicator(Admin admin) { this.admin = admin; }
+
+    @Override
+    public Health health() {
+        try {
+            var id = admin.describeCluster().clusterId().get(3, java.util.concurrent.TimeUnit.SECONDS);
+            return Health.up().withDetail("clusterId", id).build();
+        } catch (Exception e) {
+            return Health.down().withException(e).build();
+        }
     }
 }
