@@ -47,6 +47,7 @@ CREATE TABLE outbox_messages (
     created_at     TIMESTAMP,
     next_attempt   TIMESTAMP,
     sent_at        TIMESTAMP,
+    failed         NUMBER(1,0)        DEFAULT 0 NOT NULL,
     last_error     VARCHAR2(500 CHAR),
     CONSTRAINT pk_outbox_messages PRIMARY KEY (id)
 );

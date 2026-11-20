@@ -12,6 +12,7 @@ public class OutboxMessage {
   public LocalDateTime createdAt;
   public LocalDateTime nextAttempt;
   public LocalDateTime sentAt;
+  public boolean failed;
   @Column(length=500) public String lastError;
   protected OutboxMessage(){}
   public OutboxMessage(String id,String exchange,String key,String correlation,String payload) {
