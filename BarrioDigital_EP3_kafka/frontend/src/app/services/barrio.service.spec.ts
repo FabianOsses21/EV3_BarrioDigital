@@ -7,9 +7,9 @@ import { Tramite } from '../models/barrio.models';
 describe('Persistencia de BarrioService',()=>{
   let service:BarrioService;
   const row:Tramite={id:'server-id',tipoId:'luminarias',tipoNombre:'Luminarias',asunto:'Poste sin luz',descripcion:'Poste apagado en la calle',propietarioId:'user-1',propietarioNombre:'Vecino',estado:'INGRESADO',fechaCreacion:'2026-10-17T00:00:00',fechaActualizacion:'2026-10-17T00:00:00'};
-  const api={getOrders:vi.fn(),getCatalog:vi.fn(),createOrder:vi.fn(),editOrder:vi.fn(),deleteOrder:vi.fn()};
+  const api={getOrders:vi.fn(),getCatalog:vi.fn(),getQuotas:vi.fn(),createOrder:vi.fn(),editOrder:vi.fn(),deleteOrder:vi.fn(),updateOrderStatus:vi.fn()};
   beforeEach(()=>{
-    vi.resetAllMocks();api.getOrders.mockReturnValue(of([]));api.getCatalog.mockReturnValue(of([]));
+    vi.resetAllMocks();api.getOrders.mockReturnValue(of([]));api.getCatalog.mockReturnValue(of([]));api.getQuotas.mockReturnValue(of({}));
     TestBed.configureTestingModule({providers:[BarrioService,{provide:AuthService,useValue:{isLoggedIn:()=>true,userId:'user-1',puedeVerTodos:false}},{provide:OrderService,useValue:api}]});service=TestBed.inject(BarrioService);
   });
   it('no muestra un trámite antes de la confirmación HTTP',async()=>{
@@ -26,6 +26,22 @@ describe('Persistencia de BarrioService',()=>{
   it('acepta una lista vacía del servidor después de una eliminación',()=>{
     api.getOrders.mockReturnValue(of([row]));service.cargarDesdeBackend();expect(service.tramitesVisibles()).toHaveLength(1);
     api.getOrders.mockReturnValue(of([]));service.cargarDesdeBackend();expect(service.tramitesVisibles()).toEqual([]);
+  });
+  it('los cupos disponibles usan el conteo global del servidor, no los trámites visibles',()=>{
+    const tipo={id:'luminarias',nombre:'Luminarias',descripcion:'',cupoDiario:5,activo:true};
+    api.getCatalog.mockReturnValue(of([tipo]));api.getQuotas.mockReturnValue(of({luminarias:4}));
+    api.getOrders.mockReturnValue(of([row]));
+    service.cargarDesdeBackend();
+    // El vecino solo ve su propio trámite, pero el cupo lo ocupan admisiones de todos.
+    expect(service.cuposDisponibles('luminarias')).toBe(1);
+  });
+  it('una admisión local descuenta el cupo mostrado',async()=>{
+    const tipo={id:'luminarias',nombre:'Luminarias',descripcion:'',cupoDiario:5,activo:true};
+    api.getCatalog.mockReturnValue(of([tipo]));api.getQuotas.mockReturnValue(of({luminarias:3}));
+    api.getOrders.mockReturnValue(of([row]));service.cargarDesdeBackend();
+    const update=api.updateOrderStatus.mockReturnValue(of({...row,estado:'ADMITIDO'}));
+    await service.cambiarEstado(row.id,'ADMITIDO');
+    expect(update).toHaveBeenCalled();expect(service.cuposDisponibles('luminarias')).toBe(1);
   });
   it('una eliminación fallida conserva el trámite',async()=>{
     api.getOrders.mockReturnValue(of([row]));service.cargarDesdeBackend();api.deleteOrder.mockReturnValue(throwError(()=>new Error('Conflicto')));

@@ -10,21 +10,22 @@ export class BarrioService {
   private error=signal<string|null>(null);readonly errorHttp=this.error.asReadonly();
   private catalog=signal<TipoTramite[]>([]);readonly tipos=this.catalog.asReadonly();
   private requests=signal<Tramite[]>([]);
+  private quotas=signal<Record<string,number>>({});
   cargarDesdeBackend():void {
     if(!this.auth.isLoggedIn())return;
     this.loading.set(true);this.error.set(null);
-    forkJoin({requests:this.api.getOrders(),catalog:this.api.getCatalog()}).subscribe({
-      next:data=>{this.requests.set(data.requests);this.catalog.set(data.catalog);this.loading.set(false);},
+    forkJoin({requests:this.api.getOrders(),catalog:this.api.getCatalog(),quotas:this.api.getQuotas()}).subscribe({
+      next:data=>{this.requests.set(data.requests);this.catalog.set(data.catalog);this.quotas.set(data.quotas);this.loading.set(false);},
       error:e=>{this.error.set(e.message);this.loading.set(false);}
     });
   }
   limpiarErrorHttp(){this.error.set(null);}
   // La API filtra por el propietario del token; no se confía en nombres enviados desde el navegador.
   tramitesVisibles(){return this.requests();}
+  // El cupo diario es global por tipo: el servidor cuenta admisiones de todos los usuarios.
   cuposDisponibles(tipoId:string){
     const tipo=this.catalog().find(t=>t.id===tipoId);if(!tipo)return 0;
-    const day=new Date().toLocaleDateString('en-CA');
-    return Math.max(0,tipo.cupoDiario-this.requests().filter(t=>t.tipoId===tipoId&&t.fechaAdmision&&new Date(t.fechaAdmision).toLocaleDateString('en-CA')===day).length);
+    return Math.max(0,tipo.cupoDiario-(this.quotas()[tipoId]??0));
   }
   puedeEditar(t:Tramite){return t.estado==='INGRESADO'&&(this.auth.puedeVerTodos||t.propietarioId===this.auth.userId);}
   private async run<T>(request:Observable<T>):Promise<T>{
@@ -36,7 +37,7 @@ export class BarrioService {
   }
   async editarTramite(id:string,asunto:string,descripcion:string){const t=await this.run(this.api.editOrder(id,asunto,descripcion));this.replace(t);}
   async eliminarTramite(id:string){await this.run(this.api.deleteOrder(id));this.requests.update(all=>all.filter(t=>t.id!==id));}
-  async cambiarEstado(id:string,estado:EstadoTramite){const t=await this.run(this.api.updateOrderStatus(id,estado));this.replace(t);}
+  async cambiarEstado(id:string,estado:EstadoTramite){const t=await this.run(this.api.updateOrderStatus(id,estado));this.replace(t);if(estado==='ADMITIDO')this.quotas.update(m=>({...m,[t.tipoId]:(m[t.tipoId]??0)+1}));}
   async guardarTipo(datos:Omit<TipoTramite,'id'>,id?:string){
     const t=await this.run(this.api.saveCatalog({...datos,id}));this.catalog.update(all=>id?all.map(x=>x.id===id?t:x):[...all,t]);
   }

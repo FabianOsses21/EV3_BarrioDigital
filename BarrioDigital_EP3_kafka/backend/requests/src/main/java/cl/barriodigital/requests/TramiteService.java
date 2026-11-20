@@ -27,6 +27,13 @@ public class TramiteService {
   @Transactional(readOnly=true) public List<Tramite> list(){
     return identity.staff()?repo.findAllByOrderByFechaCreacionDesc():repo.findByPropietarioIdOrderByFechaCreacionDesc(identity.id());
   }
+  @Transactional(readOnly=true) public Map<String,Long> quotas(){
+    LocalDate today=LocalDate.now();
+    Map<String,Long> map=new HashMap<>();
+    for(Object[] row:repo.countAdmittedByTipo(today.atStartOfDay(),today.atTime(LocalTime.MAX)))
+      map.put((String)row[0],(Long)row[1]);
+    return map;
+  }
   @Transactional(readOnly=true) public Tramite get(String id){
     Tramite t=repo.findById(id).orElseThrow();
     if(!identity.staff()&&!t.getPropietarioId().equals(identity.id()))throw new ResponseStatusException(HttpStatus.FORBIDDEN,"No puedes consultar este trámite");
