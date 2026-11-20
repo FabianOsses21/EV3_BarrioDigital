@@ -61,7 +61,7 @@ Crear un trámite desde la UI (tipo activo, correo `vecino@example.test`)
 
 ## 5. RabbitMQ: clúster, colas y exchanges (2 min)
 
-- `http://100.51.118.72:15672` y `:15673` → login `barriodigital`.
+- `http://100.51.118.15:15672` y `:15673` → login `barriodigital`.
 - En SSH: `docker compose exec rabbitmq-1 rabbitmqctl cluster_status`
   → `rabbit@rabbitmq-1` + `rabbit@rabbitmq-2` en Running Nodes.
   **"Dos nodos RabbitMQ integrados en un clúster"** ✔

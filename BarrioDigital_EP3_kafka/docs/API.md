@@ -11,12 +11,20 @@ Base local: `http://localhost:8080`. El frontend llama a `/api` desde su propio 
 | DELETE `/api/catalog/{id}` | Desactivar conservando historial | Administrador |
 | GET `/api/requests` | Propios para vecino; todos para personal | Cualquier rol válido |
 | GET `/api/requests/{id}` | Detalle con control de propietario | Propietario o personal |
-| POST `/api/requests` | Crear trámite y tres eventos outbox | Cualquier rol válido |
+| POST `/api/requests` | Crear trámite y eventos outbox (AMQP + Kafka) | Cualquier rol válido |
 | PUT `/api/requests/{id}` | Editar asunto/descripción en INGRESADO | Propietario o personal |
 | PUT `/api/requests/{id}/estado` | Cambiar estado y generar eventos | Funcionario o administrador |
 | DELETE `/api/requests/{id}` | Eliminar en INGRESADO | Propietario o personal |
-| GET `/api/requests/outbox/status` | Número de eventos pendientes | Administrador |
+| GET `/api/requests/cupos` | Admisiones de hoy por `tipoId` (conteo global) | Cualquier rol válido |
+| GET `/api/requests/outbox/status` | Eventos pendientes y fallidos del outbox | Administrador |
 | GET `/api/notifications` | Últimos 100 registros procesados | Administrador |
+| GET `/api/notifications/kafka/{tramiteId}` | Historial de eventos Kafka del trámite | Administrador |
+| GET `/api/kafka/topics` | Listar tópicos | Administrador |
+| POST `/api/kafka/topics` | Crear tópico (`name`, `partitions` 1-64, `replicas` 1-3) | Administrador |
+| GET `/api/kafka/topics/{name}` | Particiones con líder, réplicas e ISR | Administrador |
+| GET `/api/kafka/topics/{name}/config` | `retention.ms` y `cleanup.policy` | Administrador |
+| PUT `/api/kafka/topics/{name}/config` | Actualizar retención y política | Administrador |
+| DELETE `/api/kafka/topics/{name}` | Eliminar tópico (solo `prueba-*`) | Administrador |
 | GET `/api/rabbitmq/queues` | Estado/métricas de colas | Administrador |
 | GET `/api/rabbitmq/consumers` | Consumidores | Administrador |
 | GET `/api/rabbitmq/nodes` | Nodos | Administrador |

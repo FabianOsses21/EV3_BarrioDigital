@@ -5,7 +5,7 @@ La conexión real queda para la próxima etapa. Por ahora, catálogo, trámites 
 La preparación ya está completa en el repositorio:
 
 - Driver `ojdbc11` y `application-oracle.properties` en catalog, requests y notify. El perfil Oracle exige URL, usuario y contraseña sin volver silenciosamente a H2. `ddl-auto=validate` evita crear o modificar tablas sin migración.
-- `infra/oracle/schema.sql`: DDL por esquema (`tipos_tramite`, `tramites_pedidos`, `items_pedido`, `tramite_write_lock`, `outbox_messages`, `notification_receipts`) con nombres físicos snake_case que espera Hibernate.
+- `infra/oracle/schema_catalog.sql`, `schema_requests.sql` y `schema_notify.sql`: DDL por esquema (`tipos_tramite`, `tramites_pedidos`, `tramite_write_lock`, `outbox_messages`, `notification_receipts`) con nombres físicos snake_case que espera Hibernate.
 - `compose.oracle.yml`: override listo para activar el perfil en los tres servicios.
 - `.env.example`: bloque `ORACLE_*` comentado con las variables requeridas.
 
