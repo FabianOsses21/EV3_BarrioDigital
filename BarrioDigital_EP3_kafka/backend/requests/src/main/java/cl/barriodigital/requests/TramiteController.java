@@ -16,6 +16,7 @@ public class TramiteController {
   public record Edit(@NotBlank @Size(min=5,max=100)String asunto,@NotBlank @Size(min=10,max=1000)String descripcion){}
   @GetMapping public List<Tramite> list(){return service.list();}
   @GetMapping("/{id}") public Tramite get(@PathVariable String id){return service.get(id);}
+  @GetMapping("/cupos") public Map<String,Long> quotas(){return service.quotas();}
   @PostMapping public ResponseEntity<Tramite> create(@Valid @RequestBody CrearTramiteDto dto){return ResponseEntity.status(201).body(service.create(dto));}
   @PutMapping("/{id}") public Tramite edit(@PathVariable String id,@Valid @RequestBody Edit dto){return service.edit(id,dto.asunto(),dto.descripcion());}
   @PutMapping("/{id}/estado") @PreAuthorize("hasAnyRole('ADMIN','FUNCIONARIO')")

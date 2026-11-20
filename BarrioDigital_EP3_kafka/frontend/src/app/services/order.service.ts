@@ -14,6 +14,7 @@ export class OrderService {
   editOrder(id:string,asunto:string,descripcion:string){return this.http.put<Tramite>(`${this.base}/requests/${encodeURIComponent(id)}`,{asunto,descripcion}).pipe(catchError(this.error));}
   deleteOrder(id:string){return this.http.delete<void>(`${this.base}/requests/${encodeURIComponent(id)}`).pipe(catchError(this.error));}
   updateOrderStatus(id:string,estado:EstadoTramite){return this.http.put<Tramite>(`${this.base}/requests/${encodeURIComponent(id)}/estado`,{estado}).pipe(catchError(this.error));}
+  getQuotas(){return this.http.get<Record<string,number>>(`${this.base}/requests/cupos`).pipe(catchError(this.error));}
   getCatalog(){return this.http.get<TipoTramite[]>(`${this.base}/catalog?soloActivos=false`).pipe(catchError(this.error));}
   saveCatalog(payload:Omit<TipoTramite,'id'> & {id?:string}){return this.http.post<TipoTramite>(`${this.base}/catalog`,payload).pipe(catchError(this.error));}
   deleteCatalog(id:string){return this.http.delete<void>(`${this.base}/catalog/${encodeURIComponent(id)}`).pipe(catchError(this.error));}
