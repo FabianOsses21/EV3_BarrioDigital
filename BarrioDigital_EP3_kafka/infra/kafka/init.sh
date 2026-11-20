@@ -10,4 +10,8 @@ for topic in tramites-eventos tramites-auditoria tramites-eventos-dlt tramites-a
     sleep 3
   done
   "$ready" || exit 1
+  # --create --if-not-exists no reconcilia un tópico ya existente: se
+  # reafirma la configuración esperada para corregir desvíos previos.
+  kafka-configs --bootstrap-server "$servers" --entity-type topics --entity-name "$topic" --alter \
+    --add-config "min.insync.replicas=2,cleanup.policy=delete,retention.ms=$retention"
 done

@@ -128,6 +128,12 @@ services:
     <<: *app
     build: {context: ./backend, target: kafkaadmin}
     environment: *app-env
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8086/actuator/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      start_period: 90s
+      retries: 8
   rabbitmq-1:
     image: rabbitmq:4.2.9-management
     hostname: rabbitmq-1
