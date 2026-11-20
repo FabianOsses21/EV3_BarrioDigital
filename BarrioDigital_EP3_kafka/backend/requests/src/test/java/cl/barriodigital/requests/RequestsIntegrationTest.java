@@ -24,7 +24,7 @@ class RequestsIntegrationTest {
       .contentType("application/json").content("{\"tipoId\":\"luminarias\",\"asunto\":\"Foco apagado\",\"descripcion\":\"Poste de luz sin iluminación\",\"clienteEmail\":\"vecino@example.test\",\"propietarioId\":\"suplantado\"}"))
       .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).get("id").asString();
   }
-  @Test void creationPersistsThreeEventsAndUsesAuthenticatedOwner()throws Exception{
+  @Test void creationPersistsOutboxEventsAndUsesAuthenticatedOwner()throws Exception{
     String id=create("vecino-a");assertThat(repo.findById(id).orElseThrow().getPropietarioId()).isEqualTo("vecino-a");
     assertThat(outbox.count()).isEqualTo(5);assertThat(outbox.findAll()).extracting(e->e.routingKey).containsExactlyInAnyOrder("email.send","tramite.audit.creado","tramite.estado.creado","tramites-eventos","tramites-auditoria");
   }

@@ -16,7 +16,6 @@ public class ProxyController {
     this.client=client;routes=Map.of("catalog",catalog,"requests",requests,"orders",requests,"pedidos",requests,"notifications",notify,"rabbitmq",admin,"kafka",kafkaAdmin);
   }
   @GetMapping("/api/public") public Map<String,String> publicStatus(){return Map.of("application","BarrioDigital BFF","status","UP");}
-  @GetMapping("/api/ordenes") public String protectedStatus(){return "BFF protegido: acceso autorizado";}
   @RequestMapping(value={"/api/{resource}","/api/{resource}/**"},method={RequestMethod.GET,RequestMethod.POST,RequestMethod.PUT,RequestMethod.PATCH,RequestMethod.DELETE})
   public ResponseEntity<byte[]> forward(@PathVariable String resource,HttpServletRequest request,@RequestBody(required=false)byte[] body){
     String destination=routes.get(resource);if(destination==null)throw new ResponseStatusException(HttpStatus.NOT_FOUND);

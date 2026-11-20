@@ -120,7 +120,6 @@ export class DashboardComponent {
   }
 
   constructor() {
-    this.auth.mostrarRolesAzure();
     this.barrio.cargarDesdeBackend();
   }
 }
