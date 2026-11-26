@@ -8,6 +8,8 @@ public record TramiteEvent(UUID eventId, UUID tramiteId, String eventType, Insta
                           String estadoAnterior, String estado, String actor, String correlationId) {
     public static final String NEGOCIO = "tramites-eventos";
     public static final String AUDITORIA = "tramites-auditoria";
+    public static final String NEGOCIO_DLT = NEGOCIO + "-dlt";
+    public static final String AUDITORIA_DLT = AUDITORIA + "-dlt";
     private static final Set<String> ESTADOS = Set.of("INGRESADO","ADMITIDO","EN_GESTION","EN_TERRENO","RESUELTO","RECHAZADO");
 
     public void validate(String key) {

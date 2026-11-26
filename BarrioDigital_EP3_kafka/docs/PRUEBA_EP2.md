@@ -70,8 +70,9 @@ Espera unos segundos y muestra:
 - ERROR, intento 1/3, Retry de 1000 ms; intento 2/3, Retry de 2000 ms; intento 3/3.
 - `NACK enviado requeue=false destino=q.cmd.email.dlq`.
 - Al menos un mensaje en `q.cmd.email.dlq`. En Management, Get messages con requeue permite inspeccionar `eventId`, `correlationId` y la cabecera `x-death` sin retirar definitivamente la evidencia. Verifica que la razón sea `rejected`, para distinguirla de una expiración por TTL.
+- En Kafka UI o con `kafka-console-consumer`, un sobre técnico en `tramites-eventos-dlt` con el mismo `requestId`/`correlationId`. El sobre declara `sourceBroker=rabbitmq`, `sourceQueue=q.cmd.email`, tipo de error y payload original.
 
-Las colas de auditoría y seguimiento pueden procesar el mismo trámite normalmente. El error preparado afecta al canal email.
+Las colas de auditoría y seguimiento pueden procesar el mismo trámite normalmente. El error preparado afecta al canal email. RabbitMQ sigue aplicando su DLX; la copia Kafka es asíncrona y best-effort, y sirve como evidencia operativa centralizada para la evaluación de DLT cuando el clúster Kafka está saludable.
 
 ## 3 RabbitAdmin válido e inválido
 

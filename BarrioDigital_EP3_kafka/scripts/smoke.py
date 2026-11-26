@@ -3,6 +3,8 @@
 import argparse
 import json
 import os
+from pathlib import Path
+import subprocess
 import time
 import urllib.error
 import urllib.request
@@ -51,6 +53,29 @@ def main():
             time.sleep(1)
         raise AssertionError('Tiempo agotado: ' + label)
 
+    project_root = Path(__file__).resolve().parents[1]
+
+    def kafka_dlt_contains(topic, request_id):
+        command = ['docker', 'compose', 'exec', '-T', 'kafka-1', 'kafka-console-consumer',
+                   '--bootstrap-server', 'kafka-1:9092', '--topic', topic,
+                   '--from-beginning', '--timeout-ms', '5000']
+        try:
+            result = subprocess.run(command, cwd=project_root, capture_output=True, text=True, timeout=20)
+        except (OSError, subprocess.SubprocessError):
+            return False
+        for line in result.stdout.splitlines():
+            try:
+                envelope = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if (envelope.get('requestId') == request_id
+                    and envelope.get('sourceBroker') == 'rabbitmq'
+                    and envelope.get('sourceQueue') == 'q.cmd.email'
+                    and envelope.get('errorType')
+                    and envelope.get('payload')):
+                return True
+        return False
+
     call('GET', '/api/public', authenticated=False)
     call('GET', '/api/requests', expected=401, authenticated=False)
     kind = call('POST', '/api/catalog', {'nombre': 'Prueba integral ' + suffix,
@@ -69,7 +94,7 @@ def main():
     call('PUT', '/api/requests/' + good['id'] + '/estado', {'estado': 'RESUELTO'}, 409)
     print('OK: BFF, persistencia, validaciones y permisos', flush=True)
     if args.http_only:
-        print('Verificación HTTP parcial terminada. No se comprobó RabbitMQ.')
+        print('Verificación HTTP parcial terminada. No se comprobaron RabbitMQ ni Kafka DLT.')
         return
 
     if args.mode == 'demo':
@@ -108,6 +133,8 @@ def main():
     before = dead_count()
     bad = call('POST', '/api/requests', {**payload, 'clienteEmail': 'error@barriodigital.test'}, 201)
     until('error controlado llega a q.cmd.email.dlq', lambda: dead_count() > before)
+    until('error controlado copiado a tramites-eventos-dlt',
+          lambda: kafka_dlt_contains('tramites-eventos-dlt', bad['id']), timeout=45)
     rows = call('GET', '/api/notifications')
     assert not any(r['requestId'] == bad['id'] and r['queueName'] == 'q.cmd.email' for r in rows)
 
