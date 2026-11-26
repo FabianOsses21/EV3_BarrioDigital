@@ -53,10 +53,10 @@ public class CommandMessageHandler {
   }
 
   private void reject(Message message,Channel channel,long tag,String queue,CommandEvent event,Exception cause)throws IOException{
-    try{deadLetters.publish(message,event,queue,cause);}
-    catch(RuntimeException ex){log.error("Copia Kafka DLT omitida por error inesperado queue={} motivo={}",queue,ex.getMessage());}
     channel.basicNack(tag,false,false);
     String eventId=event==null?message.getMessageProperties().getMessageId():event.eventId();
     log.warn("NACK enviado requeue=false destino={}.dlq eventId={}",queue,eventId);
+    try{deadLetters.publish(message,event,queue,cause);}
+    catch(RuntimeException ex){log.error("Copia Kafka DLT omitida por error inesperado queue={} motivo={}",queue,ex.getMessage());}
   }
 }

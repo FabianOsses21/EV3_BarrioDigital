@@ -23,6 +23,16 @@ class CommandMessageHandlerTest {
     verify(deadLetters,times(1)).publish(eq(message),any(CommandEvent.class),eq(MessagingNames.Q_EMAIL),any(IllegalStateException.class));
   }
   @Test void malformedJsonReachesDlqInsteadOfLooping()throws Exception{Message malformed=new Message("{invalid".getBytes(),message.getMessageProperties());consumer.consume(malformed,channel);verifyNoInteractions(processor);verify(channel).basicNack(42,false,false);verify(deadLetters).publish(eq(malformed),isNull(),eq(MessagingNames.Q_EMAIL),any(Exception.class));}
+  @Test void kafkaCopyIsSubmittedOnlyAfterRabbitNack()throws Exception{
+    when(processor.process(any(),anyString())).thenThrow(new IllegalStateException("controlado"));consumer.consume(message,channel);
+    var order=inOrder(channel,deadLetters);order.verify(channel).basicNack(42,false,false);order.verify(deadLetters).publish(eq(message),any(CommandEvent.class),eq(MessagingNames.Q_EMAIL),any(IllegalStateException.class));
+  }
+  @Test void rabbitNackFailureDoesNotCreateKafkaEvidence()throws Exception{
+    when(processor.process(any(),anyString())).thenThrow(new IllegalStateException("controlado"));
+    doThrow(new IOException("connection lost")).when(channel).basicNack(42,false,false);
+    assertThatThrownBy(()->consumer.consume(message,channel)).isInstanceOf(IOException.class);
+    verifyNoInteractions(deadLetters);
+  }
   @Test void kafkaCopyFailureDoesNotPreventRabbitNack()throws Exception{
     when(processor.process(any(),anyString())).thenThrow(new IllegalStateException("controlado"));
     doThrow(new RuntimeException("kafka down")).when(deadLetters).publish(any(),any(),anyString(),any());

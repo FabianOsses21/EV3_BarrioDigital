@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Prueba integral contra Compose iniciado. Python 3.10+, sin dependencias externas."""
 import argparse
+import base64
 import json
 import os
 from pathlib import Path
@@ -68,11 +69,26 @@ def main():
                 envelope = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if (envelope.get('requestId') == request_id
+            if not (envelope.get('requestId') == request_id
                     and envelope.get('sourceBroker') == 'rabbitmq'
                     and envelope.get('sourceQueue') == 'q.cmd.email'
                     and envelope.get('errorType')
-                    and envelope.get('payload')):
+                    and envelope.get('eventId')
+                    and envelope.get('correlationId')
+                    and envelope.get('payload')
+                    and envelope.get('payloadBase64')):
+                continue
+            if envelope.get('deadLetterId') != envelope['eventId'] + '|q.cmd.email':
+                continue
+            try:
+                original = json.loads(envelope['payload'])
+                exact_payload = base64.b64decode(envelope['payloadBase64']) == envelope['payload'].encode('utf-8')
+            except (ValueError, TypeError, json.JSONDecodeError):
+                continue
+            if (exact_payload
+                    and original.get('requestId') == request_id
+                    and original.get('eventId') == envelope['eventId']
+                    and original.get('correlationId') == envelope['correlationId']):
                 return True
         return False
 

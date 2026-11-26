@@ -3,8 +3,12 @@ package cl.barriodigital.notify;
 import cl.barriodigital.common.CommandEvent;
 import cl.barriodigital.common.MessagingNames;
 import cl.barriodigital.common.TramiteEvent;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -21,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,7 +37,7 @@ class KafkaDeadLetterPublisherTest {
   @BeforeEach @SuppressWarnings("unchecked") void setup() {
     producer=mock(KafkaTemplate.class);
     mapper=JsonMapper.builder().build();
-    publisher=new KafkaDeadLetterPublisher(producer,mapper);
+    publisher=new KafkaDeadLetterPublisher(producer,mapper,Runnable::run);
   }
 
   @Test void auditCommandsUseAuditDltAndOperationalCommandsUseBusinessDlt() {
@@ -48,7 +53,8 @@ class KafkaDeadLetterPublisherTest {
     properties.setReceivedRoutingKey(MessagingNames.RK_EMAIL);
     properties.setMessageId("event-1");
     properties.setCorrelationId("corr-1");
-    Message message=new Message("{\"eventId\":\"event-1\"}".getBytes(),properties);
+    byte[] body="{\"eventId\":\"event-1\"}".getBytes();
+    Message message=new Message(body,properties);
     when(producer.send(eq(TramiteEvent.NEGOCIO_DLT),eq("request-1"),anyString())).thenReturn(sendResult(TramiteEvent.NEGOCIO_DLT));
 
     publisher.publish(message,event,MessagingNames.Q_EMAIL,new IllegalStateException("Error controlado"));
@@ -66,6 +72,7 @@ class KafkaDeadLetterPublisherTest {
       .containsEntry("errorType","IllegalStateException")
       .containsEntry("errorMessage","Error controlado");
     assertThat(envelope.get("payload")).asString().contains("event-1");
+    assertThat(Base64.getDecoder().decode((String)envelope.get("payloadBase64"))).containsExactly(body);
   }
 
   @Test void malformedCommandFallsBackToMessageIdAsKafkaKey() {
@@ -80,6 +87,39 @@ class KafkaDeadLetterPublisherTest {
     verify(producer).send(eq(TramiteEvent.AUDITORIA_DLT),eq("amqp-message-1"),anyString());
   }
 
+  @Test void missingIdsUseStablePayloadHashAcrossCopies() {
+    var properties=new MessageProperties();
+    properties.setConsumerQueue(MessagingNames.Q_EMAIL);
+    Message message=new Message("{invalid".getBytes(),properties);
+    when(producer.send(eq(TramiteEvent.NEGOCIO_DLT),anyString(),anyString())).thenReturn(sendResult(TramiteEvent.NEGOCIO_DLT));
+
+    publisher.publish(message,null,MessagingNames.Q_EMAIL,new IllegalArgumentException("JSON inválido"));
+    publisher.publish(message,null,MessagingNames.Q_EMAIL,new IllegalArgumentException("JSON inválido"));
+
+    ArgumentCaptor<String> keys=ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> payloads=ArgumentCaptor.forClass(String.class);
+    verify(producer,times(2)).send(eq(TramiteEvent.NEGOCIO_DLT),keys.capture(),payloads.capture());
+    assertThat(keys.getAllValues().get(0)).isEqualTo(keys.getAllValues().get(1));
+    Map<String,Object> envelope=mapper.readValue(payloads.getAllValues().get(0),Map.class);
+    assertThat(envelope.get("deadLetterId")).isEqualTo(keys.getAllValues().get(0)+"|"+MessagingNames.Q_EMAIL);
+  }
+
+  @Test void payloadBase64PreservesInvalidUtf8Bytes() {
+    var properties=new MessageProperties();
+    properties.setConsumerQueue(MessagingNames.Q_EMAIL);
+    properties.setMessageId("event-invalid-encoding");
+    byte[] body=new byte[]{(byte)0xff,0x00,'{'};
+    Message message=new Message(body,properties);
+    when(producer.send(eq(TramiteEvent.NEGOCIO_DLT),anyString(),anyString())).thenReturn(sendResult(TramiteEvent.NEGOCIO_DLT));
+
+    publisher.publish(message,null,MessagingNames.Q_EMAIL,new IllegalArgumentException("codificación inválida"));
+
+    ArgumentCaptor<String> payload=ArgumentCaptor.forClass(String.class);
+    verify(producer).send(eq(TramiteEvent.NEGOCIO_DLT),anyString(),payload.capture());
+    Map<String,Object> envelope=mapper.readValue(payload.getValue(),Map.class);
+    assertThat(Base64.getDecoder().decode((String)envelope.get("payloadBase64"))).containsExactly(body);
+  }
+
   @Test void kafkaFailureDoesNotEscapeAndBlockRabbitRejection() {
     var properties=new MessageProperties();
     properties.setConsumerQueue(MessagingNames.Q_EMAIL);
@@ -88,6 +128,34 @@ class KafkaDeadLetterPublisherTest {
     when(producer.send(anyString(),anyString(),anyString())).thenReturn(CompletableFuture.failedFuture(new RuntimeException("broker down")));
 
     assertThatCode(()->publisher.publish(message,null,MessagingNames.Q_EMAIL,new IllegalStateException("fallo"))).doesNotThrowAnyException();
+  }
+
+  @Test void blockingKafkaProducerDoesNotDelayAsynchronousSubmission() throws Exception {
+    var properties=new MessageProperties();
+    properties.setConsumerQueue(MessagingNames.Q_EMAIL);
+    properties.setMessageId("event-1");
+    Message message=new Message("{}".getBytes(),properties);
+    CountDownLatch sendStarted=new CountDownLatch(1);
+    CountDownLatch finishSend=new CountDownLatch(1);
+    var executor=Executors.newSingleThreadExecutor();
+    try {
+      KafkaDeadLetterPublisher asyncPublisher=new KafkaDeadLetterPublisher(producer,mapper,executor);
+      when(producer.send(anyString(),anyString(),anyString())).thenAnswer(invocation->{
+        sendStarted.countDown();
+        finishSend.await(2,TimeUnit.SECONDS);
+        return CompletableFuture.failedFuture(new RuntimeException("broker down"));
+      });
+
+      long started=System.nanoTime();
+      asyncPublisher.publish(message,null,MessagingNames.Q_EMAIL,new IllegalStateException("fallo"));
+      long elapsedMillis=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-started);
+
+      assertThat(sendStarted.await(2,TimeUnit.SECONDS)).isTrue();
+      assertThat(elapsedMillis).isLessThan(1000);
+    } finally {
+      finishSend.countDown();
+      executor.shutdownNow();
+    }
   }
 
   private CompletableFuture<SendResult<String,String>> sendResult(String topic) {

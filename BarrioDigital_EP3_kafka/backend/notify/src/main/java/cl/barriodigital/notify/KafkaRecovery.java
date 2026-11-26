@@ -6,10 +6,23 @@ import org.apache.kafka.common.TopicPartition;
 import org.springframework.context.annotation.*;
 import org.springframework.kafka.listener.*;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.util.backoff.FixedBackOff;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 class KafkaRecovery {
+    @Bean
+    ThreadPoolTaskExecutor kafkaDeadLetterCopyExecutor() {
+        var executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("amqp-kafka-dlt-copy-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+        return executor;
+    }
+
     @Bean
     DefaultErrorHandler kafkaErrorHandler(KafkaTemplate<String,String> template) {
         var recoverer = new DeadLetterPublishingRecoverer(template,
